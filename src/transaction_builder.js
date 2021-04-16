@@ -774,17 +774,7 @@ function canSign (input) {
     )
 }
 
-TransactionBuilder.prototype.sign = function (vin, keyPair, redeemScript, hashType, witnessValue, witnessScript) {
-  debug('Signing transaction: (input: %d, hashType: %d, witnessVal: %s, witnessScript: %j)', vin, hashType, witnessValue, witnessScript)
-  debug('Transaction Builder network: %j', this.network)
-
-  // TODO: remove keyPair.network matching in 4.0.0
-  if (keyPair.network && keyPair.network !== this.network) throw new TypeError('Inconsistent network')
-  if (!this.inputs[vin]) throw new Error('No input at index: ' + vin)
-  hashType = hashType || Transaction.SIGHASH_ALL
-
-  var input = this.inputs[vin]
-
+TransactionBuilder.prototype.prepareInput = function (input, publicKey, redeemScript, witnessValue, witnessScript) {
   // if redeemScript was previously provided, enforce consistency
   if (input.redeemScript !== undefined &&
       redeemScript &&
@@ -792,7 +782,7 @@ TransactionBuilder.prototype.sign = function (vin, keyPair, redeemScript, hashTy
     throw new Error('Inconsistent redeemScript')
   }
 
-  var kpPubKey = keyPair.publicKey || keyPair.getPublicKeyBuffer()
+  var kpPubKey = publicKey
   if (!canSign(input)) {
     if (witnessValue !== undefined) {
       if (input.value !== undefined && input.value !== witnessValue) throw new Error('Input didn\'t match witnessValue')
@@ -805,6 +795,21 @@ TransactionBuilder.prototype.sign = function (vin, keyPair, redeemScript, hashTy
     if (!canSign(input)) prepareInput(input, kpPubKey, redeemScript, witnessValue, witnessScript)
     if (!canSign(input)) throw Error(input.prevOutType + ' not supported')
   }
+}
+
+TransactionBuilder.prototype.sign = function (vin, keyPair, redeemScript, hashType, witnessValue, witnessScript) {
+  debug('Signing transaction: (input: %d, hashType: %d, witnessVal: %s, witnessScript: %j)', vin, hashType, witnessValue, witnessScript)
+  debug('Transaction Builder network: %j', this.network)
+
+  // TODO: remove keyPair.network matching in 4.0.0
+  if (keyPair.network && keyPair.network !== this.network) throw new TypeError('Inconsistent network')
+  if (!this.inputs[vin]) throw new Error('No input at index: ' + vin)
+  hashType = hashType || Transaction.SIGHASH_ALL
+
+  var input = this.inputs[vin]
+
+  var kpPubKey = keyPair.publicKey || keyPair.getPublicKeyBuffer()
+  this.prepareInput(input, kpPubKey, redeemScript, witnessValue, witnessScript)
 
   // ready to sign
   var signatureHash
