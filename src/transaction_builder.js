@@ -790,8 +790,6 @@ TransactionBuilder.prototype.prepareInput = function (input, publicKey, redeemSc
       input.value = witnessValue
     }
 
-    debug('Preparing input %d for signing', vin)
-
     if (!canSign(input)) prepareInput(input, kpPubKey, redeemScript, witnessValue, witnessScript)
     if (!canSign(input)) throw Error(input.prevOutType + ' not supported')
   }
